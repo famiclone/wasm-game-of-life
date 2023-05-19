@@ -26,13 +26,13 @@ impl Rand {
         self.lo = 18030 * (self.lo & 0xFFFF) + (self.lo >> 16);
         self.hi = 30903 * (self.hi & 0xFFFF) + (self.hi >> 16);
 
-        ((self.lo << 16) + self.hi) as usize / WIDTH
+        ((self.lo << 16) + self.hi) as usize / 10000000
         //((self.lo << 16) + self.hi) as f64 / 100000000000000.0 as f64 // 10_f64.powi(14) 14 - number of digits TODO: calc
     }
 }
 
-const WIDTH: usize = 10;
-const HEIGHT: usize = 10;
+const WIDTH: usize = 500;
+const HEIGHT: usize = 500;
 
 type Color = [u8; 4];
 
@@ -65,11 +65,12 @@ impl Game {
 
     fn update(&mut self, ts: usize) {}
 
-    fn render(&self, board: &mut Board) {
-        board.fill([0, 0, 0, 255]);
+    fn render(&mut self, board: &mut Board) {
         for p in 0..WIDTH * HEIGHT {
-            let pointer = &mut self.rand.random() as *mut usize;
-            if pointer as usize > 10000 {
+            let mut max: usize = 300;
+            let r = self.rand.random();
+
+            if self.rand.random() > max {
                 board.draw([0, 0, 0, 255], p);
                 //board[p] = [0, 0, 0, 255];
             } else {
@@ -82,7 +83,7 @@ impl Game {
 
 static mut GAME: Game = Game::new();
 static mut BOARD: Board = Board {
-    data: [[255, 0, 0, 255]; WIDTH * HEIGHT],
+    data: [[0, 0, 0, 255]; WIDTH * HEIGHT],
 };
 
 #[no_mangle]

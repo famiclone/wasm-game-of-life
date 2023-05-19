@@ -1,14 +1,16 @@
 const canvas = document.getElementById('canvas');
+canvas.style.zoom = '1.8';
+
 const ctx = canvas.getContext('2d');
+
 
 async function run() {
   const { instance: { exports } } = await WebAssembly.instantiateStreaming(fetch('game.wasm'));
+  let counter = 0;
 
   const memoryView = new Uint8Array(exports.memory.buffer);
 
-  console.log(memoryView);
-
-  const SCALE = 50;
+  const SCALE = 1;
   const WIDTH = exports.get_width();
   const HEIGHT = exports.get_height();
 
@@ -18,12 +20,8 @@ async function run() {
   let now = 0;
 
   function render(data) {
-    const image = new ImageData(data, WIDTH, HEIGHT);
-
     ctx.clearRect(0, 0, WIDTH, HEIGHT);
-
-    ctx.putImageData(image, 0, 0);
-    ctx.scale(SCALE, SCALE);
+    ctx.putImageData(new ImageData(data, WIDTH, HEIGHT), 0, 0);
   }
 
   const board = exports.get_board();
@@ -33,7 +31,12 @@ async function run() {
     const dt = ts - now;
     now = ts;
 
-    exports.update(dt);
+    counter += dt;
+
+    if (counter > 1000) {
+      counter = 0;
+      exports.update(dt);
+    }
 
     render(new Uint8ClampedArray(memoryView.subarray(board, board + 4 * (WIDTH * HEIGHT))));
 
