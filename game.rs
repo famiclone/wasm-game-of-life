@@ -6,12 +6,36 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
+struct Rand {
+    lo: u64,
+    hi: u64,
+}
+
+impl Rand {
+    const fn new(seed: u64) -> Self {
+        let i = Rand {
+            lo: seed,
+            hi: seed + 1,
+        };
+        //Self::random(&mut i);
+        i
+    }
+
+    // https://v8.dev/blog/math-random
+    fn random(&mut self) -> usize {
+        self.lo = 18030 * (self.lo & 0xFFFF) + (self.lo >> 16);
+        self.hi = 30903 * (self.hi & 0xFFFF) + (self.hi >> 16);
+
+        ((self.lo << 16) + self.hi) as usize / WIDTH
+        //((self.lo << 16) + self.hi) as f64 / 100000000000000.0 as f64 // 10_f64.powi(14) 14 - number of digits TODO: calc
+    }
+}
+
 const WIDTH: usize = 10;
 const HEIGHT: usize = 10;
 
 type Color = [u8; 4];
 
-#[repr(C)]
 pub struct Board {
     data: [Color; WIDTH * HEIGHT],
 }
@@ -23,12 +47,41 @@ impl Board {
         }
     }
 
-    fn draw(&mut self, value: Color, x: usize, y: usize) {
-        self.data[y * WIDTH + x] = value;
+    fn draw(&mut self, value: Color, i: usize) {
+        self.data[i] = value;
     }
 }
 
-static mut board: Board = Board {
+struct Game {
+    rand: Rand,
+}
+
+impl Game {
+    const fn new() -> Self {
+        Self {
+            rand: Rand::new(1234567890),
+        }
+    }
+
+    fn update(&mut self, ts: usize) {}
+
+    fn render(&self, board: &mut Board) {
+        board.fill([0, 0, 0, 255]);
+        for p in 0..WIDTH * HEIGHT {
+            let pointer = &mut self.rand.random() as *mut usize;
+            if pointer as usize > 10000 {
+                board.draw([0, 0, 0, 255], p);
+                //board[p] = [0, 0, 0, 255];
+            } else {
+                board.draw([255, 255, 255, 255], p);
+                //board[p] = [255, 255, 255, 255];
+            }
+        }
+    }
+}
+
+static mut GAME: Game = Game::new();
+static mut BOARD: Board = Board {
     data: [[255, 0, 0, 255]; WIDTH * HEIGHT],
 };
 
@@ -43,11 +96,12 @@ pub extern "C" fn get_height() -> usize {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn get_board() -> &'static mut Board {
-    &mut board
+pub unsafe extern "C" fn update(ts: usize) {
+    GAME.update(ts);
+    GAME.render(&mut BOARD);
 }
 
 #[no_mangle]
-pub extern "C" fn update(ts: usize) -> usize {
-    ts
+pub unsafe extern "C" fn get_board() -> &'static mut Board {
+    &mut BOARD
 }

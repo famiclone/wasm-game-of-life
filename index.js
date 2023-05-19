@@ -14,22 +14,20 @@ async function run() {
 
   canvas.width = WIDTH * SCALE;
   canvas.height = HEIGHT * SCALE;
-  ctx.scale(SCALE, SCALE);
 
   let now = 0;
 
   function render(data) {
     const image = new ImageData(data, WIDTH, HEIGHT);
 
-    console.log(image);
     ctx.clearRect(0, 0, WIDTH, HEIGHT);
 
     ctx.putImageData(image, 0, 0);
+    ctx.scale(SCALE, SCALE);
   }
 
-    const board = exports.get_board();
+  const board = exports.get_board();
 
-    render(new Uint8ClampedArray(memoryView.subarray(board, board + 4 * (WIDTH * HEIGHT))));
 
   function loop(ts) {
     const dt = ts - now;
@@ -37,6 +35,7 @@ async function run() {
 
     exports.update(dt);
 
+    render(new Uint8ClampedArray(memoryView.subarray(board, board + 4 * (WIDTH * HEIGHT))));
 
     requestAnimationFrame(loop);
   }
